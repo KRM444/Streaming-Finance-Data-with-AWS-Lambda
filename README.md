@@ -125,7 +125,7 @@ def lambda_handler(event, context):
 ____________________________________________________________________________________________________________________________
 
 ## Data Analyzer
-* Following ```query.sql``` was run in AWS Athena to acheive the highest stock price per trading hour.
+* Following ```query.sql``` was run in AWS Athena to acheive the highest stock price for each stock per trading hour.
 ```SQL
 SELECT raw.name AS Company_Name,
          SUBSTRING(raw.ts, 12, 2) AS Hour_Of_Day,
