@@ -50,8 +50,47 @@ ________________________________________________________________________________
 * ``` data_collector.py ```
 
 ```python
+import boto3
+import os
+import subprocess
+import sys
+import json
 
-LAMBDA COLLECTOR SOURCE CODE HERE AND UPLOAD data_collector.py FILE IN ROOT
+subprocess.check_call([sys.executable, "-m", "pip", "install", "--target", "/tmp", 'yfinance'])
+sys.path.append('/tmp')
+import yfinance as yf
+
+tickers = ['FB', 'SHOP', 'BYND', 'NFLX', 'PINS', 'SQ', 'TTD', 'OKTA', 'SNAP', 'DDOG']
+
+def lambda_handler(event, context):
+    
+    # initialize boto3 client
+    fh = boto3.client("firehose", "us-east-2")
+
+    for ticker in tickers:
+        data = yf.download(ticker, start = "2020-05-14", end="2020-05-15", interval="1m")
+        
+        for datetime, row in data.iterrows():
+            output = {'name': ticker}
+            output['high'] = row['High']
+            output['low'] = row['Low']
+            output['ts'] = str(datetime)
+
+            # convert it to JSON -- IMPORTANT!!!
+            as_jsonstr = json.dumps(output)
+
+            # this actually pushed to our firehose datastream
+            # we must "encode" in order to convert it into the
+            # bytes datatype as all of AWS libs operate over
+            # bytes not strings           
+            fh.put_record(
+            DeliveryStreamName="finance-delivery-stream", 
+            Record={"Data": as_jsonstr.encode('utf-8')})
+            
+    return {
+            'statusCode': 200,
+            'body': json.dumps(f'Done! Recorded: {as_jsonstr}')
+    }
 ```
 
 **Following is a screenshot of my AWS Lambda configuration page proving that the collector function ran successfully.**
@@ -62,6 +101,24 @@ ________________________________________________________________________________
 * ``` data_transformer.py ```
 
 ```python
+import json
+
+def lambda_handler(event, context):
+    output_records = []
+    for record in event["records"]:
+        print(type(record["data"]))
+        print((record["data"]))
+        output_records.append({
+            "recordId": record['recordId'],
+            "result": "Ok",
+            "data": record["data"] + "Cg=="
+        })
+        
+    print(len(output_records))
+    print(output_records)
+    print(event['records'])
+        
+    return { "records": output_records }
 ```
 **Following is a screenshot of the kinesis firehose delivery stream “Monitoring” page, showcasing graphs that proves firehose was used.**\
 ![](Images/kinesis-monitoring.png)
@@ -70,7 +127,21 @@ ________________________________________________________________________________
 ## Data Analyzer
 * Following ```query.sql``` was run in order to acheive the highest stock price per trading hour.
 ```SQL
-SQL QUERY HERE
+SELECT raw.name AS Company_Name,
+         SUBSTRING(raw.ts, 12, 2) AS Hour_Of_Day,
+         raw.ts AS Date_Time_Of_When_High_Price_Occurred,
+         maxvalues.max_high AS High_Stock_Price
+FROM "21" raw
+INNER JOIN 
+    (SELECT name,
+         SUBSTRING(ts, 12, 2) AS hour,
+         MAX(high) AS max_high
+    FROM "21"
+    GROUP BY  name, SUBSTRING(ts, 12, 2) ) maxvalues
+    ON raw.name = maxvalues.name
+        AND SUBSTRING(raw.ts, 12, 2) = maxvalues.hour
+        AND raw.high = maxvalues.max_high
+ORDER BY  raw.name ASC, SUBSTRING(raw.ts, 12, 2) ASC
 ```
 * This is a tabulated representation for the output of above query, the actual ```results.csv``` may be found in the root directory.
 
