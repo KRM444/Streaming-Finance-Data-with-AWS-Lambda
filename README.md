@@ -62,7 +62,7 @@ ________________________________________________________________________________
 
 ```python
 ```
-**Following is a screenshot of the kinesis firehose delivery stream “Monitoring” page, showcasing graphs that prove firehose was used.**
+**Following is a screenshot of the kinesis firehose delivery stream “Monitoring” page, showcasing graphs that prove firehose was used.**\
 ![](Images/kinesis-monitoring.png)
 ____________________________________________________________________________________________________________________________
 
