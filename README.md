@@ -120,12 +120,12 @@ def lambda_handler(event, context):
         
     return { "records": output_records }
 ```
-**Following is a screenshot of the kinesis firehose delivery stream “Monitoring” page, showcasing graphs that proves firehose was used.**\
+**Following is a screenshot of the kinesis firehose delivery stream “Monitoring” page, showcasing graphs that prove firehose was used.**\
 ![](Images/kinesis-monitoring.png)
 ____________________________________________________________________________________________________________________________
 
 ## Data Analyzer
-* Following ```query.sql``` was run in order to acheive the highest stock price per trading hour.
+* Following ```query.sql``` was run in AWS Athena to acheive the highest stock price per trading hour.
 ```SQL
 SELECT raw.name AS Company_Name,
          SUBSTRING(raw.ts, 12, 2) AS Hour_Of_Day,
